@@ -59,8 +59,8 @@ class QuietFactory implements FactoryInterface
                 return null;
             }
 
-            // remove route to create an item without any URL
-            unset($options['route']);
+            // set linkType to uri
+            $options['linkType'] = 'uri';
 
             return $this->innerFactory->createItem($name, $options);
         }

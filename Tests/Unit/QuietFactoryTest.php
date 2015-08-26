@@ -15,15 +15,36 @@ class QuietFactoryTest extends \PHPUnit_Framework_TestCase
         $this->logger = $this->prophesize('Psr\Log\LoggerInterface');
     }
 
-    public function testAllowEmptyItemsReturnsItemWithoutURL()
+    public function provideItemsWithNotExistingLinks()
+    {
+        return array(
+            array(array('route' => 'not_existent')),
+            array(array('content' => 'not_existent')),
+            array(array('linkType' => 'route', 'route' => 'not_existent')),
+        );
+    }
+
+    /** @dataProvider provideItemsWithNotExistingLinks */
+    public function testAllowEmptyItemsReturnsItemWithoutURL(array $options)
+    {
+        $this->innerFactory->createItem('Home', $options)
+            ->willThrow('Symfony\Component\Routing\Exception\RouteNotFoundException');
+
+        $homeMenuItem = new \stdClass();
+        $this->innerFactory->createItem('Home', array_merge($options, array('linkType' => 'uri')))->willReturn($homeMenuItem);
+
+        $factory = new QuietFactory($this->innerFactory->reveal(), $this->logger->reveal(), true);
+
+        $this->assertEquals($homeMenuItem, $factory->createItem('Home', $options));
+    }
+
+    public function testDisallowEmptyItemsReturnsNull()
     {
         $this->innerFactory->createItem('Home', array('route' => 'not_existent'))
             ->willThrow('Symfony\Component\Routing\Exception\RouteNotFoundException');
 
-        $this->innerFactory->createItem('Home', array())->shouldBeCalled();
+        $factory = new QuietFactory($this->innerFactory->reveal(), $this->logger->reveal(), false);
 
-        $factory = new QuietFactory($this->innerFactory->reveal(), $this->logger->reveal(), true);
-
-        $factory->createItem('Home', array('route' => 'not_existent'));
+        $this->assertEquals(null, $factory->createItem('Home', array('route' => 'not_existent')));
     }
 }
